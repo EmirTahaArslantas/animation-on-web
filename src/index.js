@@ -21,7 +21,7 @@ function Scene() {
   const mixerRefs = useRef([]);
 
   useEffect(() => {
-    const loaders = modelPaths.slice(0, 2).map((path) => {
+    const loaders = modelPaths.slice(0, 5).map((path) => {
       return new Promise((resolve, reject) => {
         new FBXLoader().load(path, resolve, undefined, reject);
       });
