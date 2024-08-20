@@ -2,11 +2,12 @@ import React, { useRef, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-const modelFiles = require.context('./models', false, /\.fbx$/);
+// GLTF dosyalarınızı yüklemek için require.context kullanabilirsiniz.
+const modelFiles = require.context('./models', false, /\.(gltf|glb)$/);
 const modelPaths = modelFiles.keys().map(modelFiles);
 
 function getRandomAction(animations) {
@@ -21,29 +22,29 @@ function Scene() {
   const mixerRefs = useRef([]);
 
   useEffect(() => {
-    const loaders = modelPaths.slice(0, 5).map((path) => {
+    const loaders = modelPaths.slice(0, 1).map((path) => {
       return new Promise((resolve, reject) => {
-        new FBXLoader().load(path, resolve, undefined, reject);
+        new GLTFLoader().load(path, resolve, undefined, reject);
       });
     });
 
     Promise.all(loaders)
-      .then((fbxModels) => {
-        setModels(fbxModels);
+      .then((gltfModels) => {
+        setModels(gltfModels.map(gltf => gltf.scene));
       })
       .catch((error) => {
-        console.error('Error loading FBX models:', error);
+        console.error('Error loading GLTF models:', error);
       });
   }, []);
 
   useEffect(() => {
     let cumulativeXPosition = 0;
 
-    models.forEach((fbx, index) => {
-      const mixer = new THREE.AnimationMixer(fbx);
+    models.forEach((model, index) => {
+      const mixer = new THREE.AnimationMixer(model);
       mixerRefs.current[index] = mixer;
 
-      const randomAction = getRandomAction(fbx.animations);
+      const randomAction = getRandomAction(model.animations);
       if (randomAction) {
         const action = mixer.clipAction(randomAction);
         action.play();
@@ -52,21 +53,21 @@ function Scene() {
         console.warn(`No animations found for model at index ${index}`);
       }
 
-      const box = new THREE.Box3().setFromObject(fbx);
+      const box = new THREE.Box3().setFromObject(model);
       const size = new THREE.Vector3();
       box.getSize(size);
 
       const center = new THREE.Vector3();
       box.getCenter(center);
-      fbx.position.sub(center);
+      model.position.sub(center);
 
-      fbx.position.x = cumulativeXPosition + size.x / 2;
-      fbx.position.y = 0;
-      fbx.position.z = 0;
+      model.position.x = cumulativeXPosition + size.x / 2;
+      model.position.y = 0;
+      model.position.z = 0;
 
-      cumulativeXPosition += size.x + 10; 
+      cumulativeXPosition += size.x + 10;
 
-      groupRef.current.add(fbx);
+      groupRef.current.add(model);
     });
 
     return () => {
